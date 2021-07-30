@@ -93,7 +93,7 @@ def execute(rank,
 
     # Data parallelization
     cudnn.benchmark = True
-    net = DDP(ssd_net, device_ids=[rank])
+    net = DDP(ssd_net, device_ids=[rank], find_unused_parameters=True)
 
     # Set training objective parameters
     optimizer = optim.SGD(net.parameters(), lr=1e-3,
