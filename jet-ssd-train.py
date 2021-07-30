@@ -86,7 +86,7 @@ def execute(rank,
     if trained_model_path:
         ssd_net.load_weights(trained_model_path)
     else:
-        ssd_net.mobilenet.apply(weights_init)
+        #ssd_net.mobilenet.apply(weights_init)
         ssd_net.loc.apply(weights_init)
         ssd_net.cnf.apply(weights_init)
         ssd_net.reg.apply(weights_init)
