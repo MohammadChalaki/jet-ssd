@@ -6,7 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import simplejson as json
+import json as json
 import torch
 import torch.nn as nn
 
