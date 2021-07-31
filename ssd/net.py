@@ -298,8 +298,8 @@ class ResNet(nn.Module):
         self.loc = nn.ModuleList(head[0])
         self.cnf = nn.ModuleList(head[1])
         self.reg = nn.ModuleList(head[2])
-        self.l2norm_1 = L2Norm(256, 20, torch.device(rank)) 
-        self.l2norm_2 = L2Norm(512, 20, torch.device(rank))
+        self.l2norm_1 = L2Norm(1024, 20, torch.device(rank))	# 256 for resnet18-34 and 1024 for resnet50 
+        self.l2norm_2 = L2Norm(2048, 20, torch.device(rank))	# 512 for resnet18-34 and 2048 for resnet50
         self.inplanes = 64
         self.dilation = 1
         self.n_classes = ssd_settings['n_classes']
@@ -485,7 +485,7 @@ def multibox(n_classes, inference):
     if inference:
         source_channels = [512]
     else:
-        source_channels = [256, 512]	# [512, 1024] for mobilenetV1, [256, 512] form reset18
+        source_channels = [1024, 2048]	# [512, 1024] for mobilenetV1, [256, 512] form reset18-34 and [1024, 2048] for resnet50
 
     for c in source_channels:
         loc += [nn.Conv2d(c, 2, kernel_size=3, padding=1, bias=False)]
@@ -503,4 +503,4 @@ def build_ssd(rank, ssd_settings, inference=False, int8=False, onnx=False):
     head = multibox(ssd_settings['n_classes'], inference)
 
     #return SSD(rank, base, head, ssd_settings, inference, int8, onnx)
-    return resnet18(rank, head, ssd_settings, pretrained=False, progress=True)
+    return resnet50(rank, head, ssd_settings, pretrained=False, progress=True)
