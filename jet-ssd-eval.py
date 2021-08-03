@@ -190,10 +190,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Evaluate Jet Detection Model')
     parser.add_argument('fpn', type=str,
                         help='Full Precision Network model name')
-    parser.add_argument('twn', type=str,
-                        help='Ternary Weight Network model name')
-    parser.add_argument('int8', type=str,
-                        help='int8 Network model name')
+    #parser.add_argument('twn', type=str,
+    #                    help='Ternary Weight Network model name')
+    #parser.add_argument('int8', type=str,
+    #                    help='int8 Network model name')
     parser.add_argument('-c', '--config', action=IsValidFile, type=str,
                         help='Path to config file', default='ssd-config.yml')
     parser.add_argument('-v', '--verbose', action='store_true',
@@ -244,28 +244,16 @@ if __name__ == '__main__':
                                                  text='Evaluating Baseline',
                                                  verbose=args.verbose)
 
-    for i, name in enumerate([args.fpn, args.twn, args.int8]):
+    for i, name in enumerate([args.fpn]):
         logger.info('Testing {0}'.format(name))
         path = '{}/{}.pth'.format(config['output']['model'], name)
 
-        if i == 2:
-            torch.set_default_tensor_type('torch.FloatTensor')
-            net = build_ssd(torch.device('cpu'),
-                            ssd_settings,
-                            inference=True,
-                            int8=True)
-            net.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
-            torch.quantization.prepare_qat(net, inplace=True)
-            net.load_weights(path)
-            net = net.cpu()
-            torch.quantization.convert(net.eval(), inplace=True)
-        else:
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
-            net = build_ssd(0, ssd_settings, inference=True)
-            net.load_weights(path)
-            cudnn.benchmark = True
-            net = net.cuda()
-            net.eval()
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        net = build_ssd(0, ssd_settings, inference=True)
+        net.load_weights(path)
+        cudnn.benchmark = True
+        net = net.cuda()
+        net.eval()
 
         if i == 0:
             dummy_input = torch.unsqueeze(torch.randn(input_dimensions), 0)
@@ -303,18 +291,12 @@ if __name__ == '__main__':
 
     plot.draw_precision_recall(base_results,
                                plotting_results[0],
-                               plotting_results[1],
-                               plotting_results[2],
                                jet_names)
 
     plot.draw_precision_details(base_deltas,
                                 plotting_results[0],
-                                plotting_results[1],
-                                plotting_results[2],
                                 jet_names)
 
     plot.draw_loc_delta(base_deltas,
                         plotting_deltas[0],
-                        plotting_deltas[1],
-                        plotting_deltas[2],
                         jet_names)
