@@ -16,7 +16,7 @@ dataset_misc:
  size:
   - 30000
   - 12000
-  - 90000
+  - 9000
 
 output:
  model: ./models
@@ -32,7 +32,7 @@ training_pref:
  workers: 0
 
 evaluation_pref:
- batch_size: 100
+ batch_size: 50
  names_classes:
   - 't'
   - 'V'
