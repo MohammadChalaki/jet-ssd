@@ -16,7 +16,7 @@ dataset_misc:
  size:
   - 30000
   - 12000
-  - 9000
+  - 90000
 
 output:
  model: ./models
