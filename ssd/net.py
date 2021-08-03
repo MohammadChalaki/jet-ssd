@@ -92,7 +92,7 @@ class SSD(nn.Module):
         reg = torch.cat([o.view(o.size(0), -1) for o in reg], 1)
 
         # Apply correct output layer
-        if self.inference and not self.onnx:
+        if self.inference: 
             priors = self.priors.type(type(x.data))
             priors = priors.to(torch.device(self.rank))
             output = self.detect.apply(
@@ -283,6 +283,7 @@ class ResNet(nn.Module):
             head,
             ssd_settings,
             num_classes: int = 1000,
+            inference=False,
             zero_init_residual: bool = False,
             groups: int = 1,
             width_per_group: int = 64,
@@ -294,15 +295,27 @@ class ResNet(nn.Module):
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
         self.rank = rank
+        self.inference = inference
         # self.mobilenet = nn.ModuleList(base)
         self.loc = nn.ModuleList(head[0])
         self.cnf = nn.ModuleList(head[1])
         self.reg = nn.ModuleList(head[2])
-        self.l2norm_1 = L2Norm(1024, 20, torch.device(rank))	# 256 for resnet18-34 and 1024 for resnet50 
+        self.l2norm_1 = L2Norm(1024, 20, torch.device(rank))	# 256 for resnet18-34 and 1024 for resnet50
+        if self.inference:
+            self.priors = Variable(PriorBox().apply(
+                {'min_dim': ssd_settings['input_dimensions'][1:],
+                 'feature_maps': [ssd_settings['feature_maps'][0]],
+                 'steps': [ssd_settings['steps'][0]],
+                 'size': ssd_settings['object_size']}, self.rank))
+            self.softmax = nn.Softmax(dim=-1)
+            self.detect = Detect()
         self.l2norm_2 = L2Norm(2048, 20, torch.device(rank))	# 512 for resnet18-34 and 2048 for resnet50
         self.inplanes = 64
         self.dilation = 1
         self.n_classes = ssd_settings['n_classes']
+        self.top_k = ssd_settings['top_k']
+        self.min_confidence = ssd_settings['confidence_threshold']
+        self.nms = ssd_settings['nms']
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
             # the 2x2 stride with a dilated convolution instead
@@ -400,15 +413,36 @@ class ResNet(nn.Module):
         reg = torch.cat([o.view(o.size(0), -1) for o in reg], 1)
 
         # Apply correct output layer
-        output = (
-            loc.view(loc.size(0), -1, 2),
-            cnf.view(cnf.size(0), -1, self.n_classes),
-            reg.view(reg.size(0), -1, 1))
+        # Apply correct output layer
+        if self.inference: 
+            priors = self.priors.type(type(x.data))
+            priors = priors.to(torch.device(self.rank))
+            output = self.detect.apply(
+                loc.view(loc.size(0), -1, 2),
+                self.softmax(cnf.view(cnf.size(0), -1, self.n_classes)),
+                reg.view(reg.size(0), -1, 1),
+                priors,
+                self.n_classes,
+                self.top_k,
+                self.min_confidence,
+                self.nms)
+        else:
+            output = (
+                loc.view(loc.size(0), -1, 2),
+                cnf.view(cnf.size(0), -1, self.n_classes),
+                reg.view(reg.size(0), -1, 1))
         return output
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
 
+    def load_weights(self, file_path):
+        _, ext = os.path.splitext(file_path)
+        if ext == '.pkl' or '.pth':
+            state_dict = torch.load(file_path, map_location=lambda s, loc: s)
+            self.load_state_dict(state_dict, strict=False)
+            return True
+        return False
 
 def _resnet(
         rank,
@@ -419,42 +453,43 @@ def _resnet(
         progress: bool,
         head,
         ssd_settings,
+        inference,
         **kwargs: Any
 ) -> ResNet:
-    model = ResNet(rank, block, layers, head, ssd_settings, **kwargs)
+    model = ResNet(rank, block, layers, head, ssd_settings, inference=inference, **kwargs)
     return model
 
 
-def resnet18(rank, head, ssd_settings, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet18(rank, head, ssd_settings, inference, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet(rank, 'resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, head, ssd_settings,
+    return _resnet(rank, 'resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, head, ssd_settings, inference,
                    **kwargs)
 
 
-def resnet34(rank, head, ssd_settings, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet34(rank, head, ssd_settings, inference, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
     r"""ResNet-34 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet(rank, 'resnet34', BasicBlock, [3, 4, 6, 3], pretrained, progress, head, ssd_settings,
+    return _resnet(rank, 'resnet34', BasicBlock, [3, 4, 6, 3], pretrained, progress, head, ssd_settings, inference,
                    **kwargs)
 
 
-def resnet50(rank, head, ssd_settings, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet50(rank, head, ssd_settings, inference, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet(rank, 'resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress, head, ssd_settings,
+    return _resnet(rank, 'resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress, head, ssd_settings, inference,
                    **kwargs)
 
 
@@ -483,7 +518,7 @@ def multibox(n_classes, inference):
     loc, cnf, reg = [], [], []
 
     if inference:
-        source_channels = [512]
+        source_channels = [1024]	# 512 for mobilenetV1, 1024 for resnet50
     else:
         source_channels = [1024, 2048]	# [512, 1024] for mobilenetV1, [256, 512] form reset18-34 and [1024, 2048] for resnet50
 
@@ -503,4 +538,4 @@ def build_ssd(rank, ssd_settings, inference=False, int8=False, onnx=False):
     head = multibox(ssd_settings['n_classes'], inference)
 
     #return SSD(rank, base, head, ssd_settings, inference, int8, onnx)
-    return resnet50(rank, head, ssd_settings, pretrained=False, progress=True)
+    return resnet50(rank, head, ssd_settings, inference, pretrained=False, progress=True)
