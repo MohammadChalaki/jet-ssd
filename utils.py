@@ -69,7 +69,7 @@ class Plotting():
     def __init__(self, save_dir='./plots', ref_recall=0.3):
 
         self.save_dir = save_dir
-        self.legend = ['Baseline', 'FPN', 'TWN', 'INT8']
+        self.legend = ['Baseline', 'FPN']
         self.ref_recall = ref_recall
 
         plt.style.use('./plots/ssdjet.mplstyle')
@@ -112,16 +112,12 @@ class Plotting():
     def draw_precision_recall(self,
                               results_base,
                               results_fpn,
-                              results_twn,
-                              results_int8,
                               jet_names):
         """Plots the precision recall curve"""
 
         fig, ax = plt.subplots()
         for i, results in enumerate([results_base,
-                                     results_fpn,
-                                     results_twn,
-                                     results_int8]):
+                                     results_fpn]):
             name = self.legend[i]
             for j, jet in enumerate(jet_names):
                 score = results[j][:, 3].numpy()
@@ -146,8 +142,6 @@ class Plotting():
     def draw_precision_details(self,
                                results_base,
                                results_fpn,
-                               results_twn,
-                               results_int8,
                                jet_names,
                                nbins=11):
         """Plots the precision histogram at fixed recall"""
@@ -190,9 +184,7 @@ class Plotting():
                 ax.set_xlim([0, 1])
 
             for x, _ in enumerate(jet_names):
-                for index, result in enumerate([results_fpn,
-                                                results_twn,
-                                                results_int8]):
+                for index, result in enumerate([results_fpn]):
                     color = self.colors[index+1]
                     score = result[x][:, 3].numpy()
                     truth = result[x][:, 4].numpy()
@@ -245,8 +237,6 @@ class Plotting():
     def draw_loc_delta(self,
                        results_base,
                        results_fpn,
-                       results_twn,
-                       results_int8,
                        jet_names,
                        nbins=11):
         """Plots the localization and regression error"""
@@ -284,9 +274,7 @@ class Plotting():
             for x, _ in enumerate(jet_names):
 
                 for index, results in enumerate([results_base,
-                                                 results_fpn,
-                                                 results_twn,
-                                                 results_int8]):
+                                                 results_fpn]):
                     color = self.colors[index]
                     cls = results[results[:, 0] == x+1].numpy()
                     bmin, v = 0, []
