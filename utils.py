@@ -155,7 +155,7 @@ class Plotting():
                                                 color='black',
                                                 label='{} jets'.format(jet)))
 
-        for i in range(3):
+        for i in range(1):
             legend_helper_type.append(Line2D([], [],
                                              linewidth=2,
                                              color=self.colors[i+1],
@@ -256,7 +256,7 @@ class Plotting():
                                                 color='black',
                                                 label='{} jets'.format(jet)))
 
-        for i in range(4):
+        for i in range(2):
             legend_helper_type.append(Line2D([], [],
                                              linewidth=2,
                                              color=self.colors[i],
