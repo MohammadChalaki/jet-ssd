@@ -14,7 +14,7 @@ dataset:
 dataset_misc:
  src_folder: /eos/project/d/dshep/CEVA-hdf5
  size:
-  - 30000
+  - 45000
   - 12000
   - 90000
 
@@ -23,16 +23,16 @@ output:
  plots: ./plots
 
 training_pref:
- batch_size_train: 25
+ batch_size_train: 30
  batch_size_validation: 150
- max_epochs: 20
+ max_epochs: 25
  momentum: .9
  patience: 50
  weight_decay: 0.0005
  workers: 0
 
 evaluation_pref:
- batch_size: 50
+ batch_size: 100
  names_classes:
   - 't'
   - 'V'

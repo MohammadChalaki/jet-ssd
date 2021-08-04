@@ -518,7 +518,7 @@ def multibox(n_classes, inference):
     loc, cnf, reg = [], [], []
 
     if inference:
-        source_channels = [1024]	# 512 for mobilenetV1, 1024 for resnet50
+        source_channels = [1024]		# 512 for mobilenetV1, 256 for resnet18-34, 1024 for resnet50
     else:
         source_channels = [1024, 2048]	# [512, 1024] for mobilenetV1, [256, 512] form reset18-34 and [1024, 2048] for resnet50
 
