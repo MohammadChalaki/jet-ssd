@@ -11,6 +11,13 @@ from torch import Tensor
 from typing import Type, Any, Callable, Union, List, Optional
 
 
+model_urls = {
+    'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
+    'resnet34': 'https://download.pytorch.org/models/resnet34-b627a593.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
+}
+
+
 class SSD(nn.Module):
 
     def __init__(self,
@@ -444,6 +451,7 @@ class ResNet(nn.Module):
             return True
         return False
 
+
 def _resnet(
         rank,
         arch: str,
@@ -457,6 +465,10 @@ def _resnet(
         **kwargs: Any
 ) -> ResNet:
     model = ResNet(rank, block, layers, head, ssd_settings, inference=inference, **kwargs)
+    if pretrained:
+        state_dict = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress)
+        model.load_state_dict(state_dict)
     return model
 
 
@@ -538,4 +550,4 @@ def build_ssd(rank, ssd_settings, inference=False, int8=False, onnx=False):
     head = multibox(ssd_settings['n_classes'], inference)
 
     #return SSD(rank, base, head, ssd_settings, inference, int8, onnx)
-    return resnet50(rank, head, ssd_settings, inference, pretrained=False, progress=True)
+    return resnet50(rank, head, ssd_settings, inference, pretrained=True, progress=True)
