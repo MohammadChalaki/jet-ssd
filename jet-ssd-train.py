@@ -11,6 +11,7 @@ import torch.multiprocessing as mp
 import tqdm
 import warnings
 import yaml
+import numpy as np
 
 from torch.autograd import Variable
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -243,6 +244,11 @@ def execute(rank,
             plot.draw_loss(train_loss.cpu().numpy(),
                            val_loss.cpu().numpy(),
                            name)
+
+            train_loss_plot = np.array(train_loss.cpu().numpy())
+            valid_loss_plot = np.array(val_loss.cpu().numpy())
+            np.save('./plotting/resnet18/train_loss_plot.npy', train_loss_plot)
+            np.save('./plotting/resnet18/valid_loss_plot.npy', valid_loss_plot)
 
             if rank == 0 and cp_es(vloss.sum(0), ssd_net):
                 break

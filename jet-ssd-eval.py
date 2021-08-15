@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import yaml
 import warnings
+import numpy as np
 
 from ssd.net import build_ssd
 from tqdm import tqdm
@@ -286,6 +287,16 @@ if __name__ == '__main__':
 
         plotting_results.append(results)
         plotting_deltas.append(deltas)
+
+    # Convert to Numpy
+    save_plotting_results = np.array(plotting_results)
+    #save_plotting_deltas = np.array(plotting_deltas)
+    save_base_results = np.array(base_results)
+
+    # Save arrays
+    np.save('./plotting/resnet50/plotting_results.npy', save_plotting_results)
+    #np.save('./plotting/resnet50/plotting_deltas.npy', save_plotting_deltas)
+    np.save('./plotting/resnet50/base_results.npy', save_base_results)
 
     plot = Plotting(save_dir=config['output']['plots'])
 
